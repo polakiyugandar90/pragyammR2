@@ -1,0 +1,61 @@
+Pragyaam R2 ASSIGNMENT:
+
+__###1.inorder to  create the restful api we need to create the and setup the database,and created an table init in sqlite.
+import sqlite3
+
+conn = sqlite3.connect('user_database.db')
+cursor = conn.cursor()
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        first_name TEXT,
+        last_name TEXT,
+        age INTEGER,
+        gender TEXT,
+        email TEXT,
+        phone TEXT,
+        birth_date TEXT
+    )
+''')
+conn.commit()
+
+
+
+from flask import Flask, request, jsonify
+import requests
+
+app = Flask(__name__)
+
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    first_name = request.args.get('first_name')
+
+    cursor.execute("SELECT * FROM users WHERE first_name LIKE ?", (first_name + '%',))
+    matching_users = cursor.fetchall()
+
+    if matching_users:
+        users = [{'id': row[0], 'first_name': row[1], 'last_name': row[2], 'age': row[3],
+                  'gender': row[4], 'email': row[5], 'phone': row[6], 'birth_date': row[7]} for row in matching_users]
+        return jsonify(users)
+    else:
+        response = requests.get(f'https://dummyjson.com/users/search?q={first_name}')
+        new_users = response.json()
+
+        for user in new_users:
+            cursor.execute('''
+                INSERT INTO users (first_name, last_name, age, gender, email, phone, birth_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (user['first_name'], user['last_name'], user['age'], user['gender'], user['email'], user['phone'], user['birth_date']))
+            conn.commit()
+
+        return jsonify(new_users)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+##2, and I used the endpoint and decoraters to for the first name.
+##3. and by using first_name the sql database will fetch the data and it will return in json format or else it will move to the external api and give the list of users in the table.
+##4,and it will fetch the information form the external and gives to the sqlite database and gives response to json.
+
